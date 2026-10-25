@@ -1,6 +1,6 @@
 // Service worker: deja la app instalable y que abra rápido.
 // Cambia VERSION cuando actualices archivos para forzar la recarga en los dispositivos.
-const VERSION = 'v5';
+const VERSION = 'v8';
 const CACHE = 'cuestionario-' + VERSION;
 const SHELL = [
   './',
@@ -9,6 +9,7 @@ const SHELL = [
   './app.js',
   './questions.js',
   './score.js',
+  './interpretaciones.js',
   './firebase-config.js',
   './manifest.webmanifest',
   './icons/icon-192.png',

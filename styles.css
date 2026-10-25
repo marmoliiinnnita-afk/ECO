@@ -187,3 +187,16 @@ details.ans summary { cursor: pointer; font-weight: 600; color: var(--brand-dark
 .idx.ok { background: var(--ok-soft); color: var(--ok); }
 .idx.bad { background: var(--bad-soft); color: var(--bad); }
 .idx.na { background: #f0f0f5; color: var(--muted); }
+
+.scales td:last-child, .meta-head b { white-space: nowrap; }
+
+.chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.chip.bajo { background: var(--bad-soft); color: var(--bad); }
+.chip.medio { background: var(--warn-soft); color: var(--warn); }
+.chip.alto { background: var(--ok-soft); color: var(--ok); }
+.interp { border-left: 4px solid var(--line); padding: 8px 0 2px 12px; margin-top: 10px; }
+.interp.bajo { border-color: var(--bad); }
+.interp.medio { border-color: #e0a030; }
+.interp.alto { border-color: var(--ok); }
+.interp-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.interp p { margin: 4px 0 6px; font-size: .88rem; color: #3c4060; }

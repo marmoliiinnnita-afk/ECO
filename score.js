@@ -5,6 +5,8 @@
 //  Cada competencia suma sus reactivos (ya invertidos donde aplica).
 //  Cada metacompetencia suma sus competencias.
 // ─────────────────────────────────────────────────────────────
+import { interpretar } from './interpretaciones.js';
+
 export const META = [
   {
     name: 'Metacompetencia intelectual',
@@ -161,7 +163,7 @@ export function calcular(answers) {
         ...(c.neg || []).map((n) => puntaje(n, true))
       ];
       const sum = pts.reduce((a, b) => a + b, 0);
-      return { name: c.name, sum, max: pts.length * 5, n: pts.length, avg: sum / pts.length, ...conPercentil(c.name, sum) };
+      return { name: c.name, sum, max: pts.length * 5, n: pts.length, avg: sum / pts.length, ...conPercentil(c.name, sum), ...interpretar(c.name, sum) };
     });
     const sum = comps.reduce((a, c) => a + c.sum, 0);
     const n = comps.reduce((a, c) => a + c.n, 0);

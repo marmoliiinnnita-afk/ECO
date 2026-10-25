@@ -9,6 +9,7 @@ import {
 import { firebaseConfig, ADMIN_EMAIL_DOMAIN } from './firebase-config.js';
 import { QUESTIONS, OPTIONS } from './questions.js';
 import { calcular, NEGATIVOS, LEYENDA_NIVELES } from './score.js';
+import { RANGOS } from './interpretaciones.js';
 
 /* ───────────── utilidades ───────────── */
 const $app = document.getElementById('app');
@@ -35,6 +36,9 @@ function fmtDate(ts) {
   if (!d) return '—';
   return d.toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' });
 }
+
+// Nombre de archivo sin acentos ni símbolos raros (Pérez Núñez -> Perez_Nunez)
+const fileSafe = (n) => String(n || 'sin-nombre').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w-]+/g, '_').replace(/^_+|_+$/g, '') || 'sin-nombre';
 
 function newToken() {
   const bytes = new Uint8Array(24);
@@ -556,9 +560,16 @@ function runAdmin(auth, db) {
           <div class="meta">
             <div class="meta-head"><span>${esc(m.name)}</span><b>${m.sum} / ${m.max}${lvl(m)}</b></div>
             <div class="bar"><i style="width:${(m.sum / m.max * 100).toFixed(1)}%"></i></div>
-            <table class="scales">${m.comps.map((s) => `<tr><td>${esc(s.name)}</td><td>${s.sum} / ${s.max}${s.percentil != null ? ' · P' + s.percentil : ''}${lvl(s)}</td></tr>`).join('')}</table>
+            <table class="scales">${m.comps.map((s) => `<tr><td>${esc(s.name)}</td><td>${s.sum} / ${s.max} · <span class="chip ${s.rango}">${s.etiqueta}</span></td></tr>`).join('')}</table>
           </div>`).join('')}
-        <p class="muted small" style="margin-top:12px">${c.metas.some((m) => m.nivel || m.comps.some((s) => s.nivel)) ? esc(LEYENDA_NIVELES) : 'Aún no se muestran percentiles ni niveles: falta cargar la tabla de baremos del manual.'}</p>
+        <p class="muted small" style="margin-top:12px">Rangos por competencia: Bajo ${RANGOS.bajo.min}-${RANGOS.bajo.max} · Medio ${RANGOS.medio.min}-${RANGOS.medio.max} · Alto ${RANGOS.alto.min}-${RANGOS.alto.max}.${c.metas.some((m) => m.nivel) ? ' ' + esc(LEYENDA_NIVELES) : ''}</p>
+        <details class="ans" open><summary>Interpretación por competencia</summary>
+          ${c.metas.map((m) => m.comps.map((s) => `
+            <div class="interp ${s.rango}">
+              <div class="interp-head"><b>${esc(s.name)}</b><span class="chip ${s.rango}">${s.etiqueta} · ${s.sum}/${s.max}</span></div>
+              <p>${esc(s.texto)}</p>
+            </div>`).join('')).join('')}
+        </details>
         <details class="ans"><summary>Ver respuestas una por una</summary>
           <div class="ans-list">${r.answers.map((v, i) => `<div><b>${i + 1}</b><span>${esc(QUESTIONS[i])} → <b>${v}</b>${NEGATIVOS.has(i + 1) ? ' <i class="muted">(invertido: ' + (6 - v) + ')</i>' : ''}</span></div>`).join('')}</div>
         </details>
@@ -673,8 +684,7 @@ function runAdmin(auth, db) {
           pdf.text(s.name, M + 3, y);
           bar(M + 90, y - 2.6, 42, s.sum / s.max, 2.2);
           pdf.setFont('helvetica', 'bold');
-          const extra = s.percentil != null ? `  P${s.percentil}` : '';
-          pdf.text(`${s.sum} / ${s.max}${extra}${s.nivel ? '  N' + s.nivel : ''}`, R, y, { align: 'right' });
+          pdf.text(`${s.sum} / ${s.max}   ${s.etiqueta}`, R, y, { align: 'right' });
           y += 7;
         });
         y += 4;
@@ -685,6 +695,41 @@ function runAdmin(auth, db) {
         pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8); pdf.setTextColor(110, 114, 135);
         pdf.text(pdf.splitTextToSize(LEYENDA_NIVELES, W - 2 * M), M, y);
       }
+
+      // ── Interpretación por competencia
+      ensure(30);
+      y += 4;
+      pdf.setTextColor(67, 56, 202); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(12);
+      pdf.text('Interpretación por competencia', M, y);
+      y += 5;
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8.5); pdf.setTextColor(110, 114, 135);
+      pdf.text(`Rangos de cada competencia (8 reactivos): Bajo ${RANGOS.bajo.min}-${RANGOS.bajo.max}  |  Medio ${RANGOS.medio.min}-${RANGOS.medio.max}  |  Alto ${RANGOS.alto.min}-${RANGOS.alto.max}`, M, y);
+      y += 8;
+      const COLORS = { bajo: [192, 41, 59], medio: [180, 83, 9], alto: [19, 138, 85] };
+      let k = 0;
+      c.metas.forEach((m) => {
+        ensure(24);
+        pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(67, 56, 202);
+        pdf.text(m.name.toUpperCase(), M, y);
+        pdf.setDrawColor(200, 204, 240); pdf.setLineWidth(0.3); pdf.line(M, y + 1.6, R, y + 1.6);
+        y += 7;
+        m.comps.forEach((s) => {
+          k++;
+          const lines = pdf.splitTextToSize(s.texto, W - 2 * M - 6);
+          const h = 8 + lines.length * 4.2 + 4;
+          ensure(h);
+          const col = COLORS[s.rango];
+          pdf.setFillColor(col[0], col[1], col[2]); pdf.rect(M, y - 3.5, 1.4, h - 3, 'F');
+          pdf.setFont('helvetica', 'bold'); pdf.setFontSize(10); pdf.setTextColor(40, 44, 66);
+          pdf.text(`${k}. ${s.name}`, M + 4, y);
+          pdf.setTextColor(col[0], col[1], col[2]);
+          pdf.text(`${s.etiqueta}  (${s.sum} / ${s.max})`, R, y, { align: 'right' });
+          pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(60, 64, 90);
+          pdf.text(lines, M + 4, y + 5);
+          y += h;
+        });
+        y += 2;
+      });
 
       // ── Reactivos y respuestas
       pdf.addPage(); y = 20;
@@ -721,7 +766,7 @@ function runAdmin(auth, db) {
         pdf.text(`Página ${i} de ${pages}`, R, 289, { align: 'right' });
       }
 
-      pdf.save(`resultado-${(t.label || 'sin-nombre').replace(/[^\w-]+/g, '_')}.pdf`);
+      pdf.save(`resultado-${fileSafe(t.label)}.pdf`);
       btn.disabled = false; btn.textContent = prev;
     }
 
@@ -739,10 +784,10 @@ function runAdmin(auth, db) {
           return [IDX_NAMES[k], v.pendiente ? 'pendiente' : v.valor, v.limite, v.pendiente ? 'pendiente' : v.invalida ? 'INVÁLIDA' : 'aceptable'];
         }),
         [],
-        ['Metacompetencia / Competencia', 'Puntaje', 'Máximo', 'Promedio', 'Percentil', 'Nivel'],
+        ['Metacompetencia / Competencia', 'Puntaje', 'Máximo', 'Promedio', 'Percentil', 'Nivel', 'Rango', 'Interpretación'],
         ...c.metas.flatMap((m) => [
-          [m.name, m.sum, m.max, m.avg.toFixed(2), m.percentil ?? '', m.nivel ?? ''],
-          ...m.comps.map((s) => ['   ' + s.name, s.sum, s.max, s.avg.toFixed(2), s.percentil ?? '', s.nivel ?? ''])
+          [m.name, m.sum, m.max, m.avg.toFixed(2), m.percentil ?? '', m.nivel ?? '', '', ''],
+          ...m.comps.map((s) => ['   ' + s.name, s.sum, s.max, s.avg.toFixed(2), s.percentil ?? '', s.nivel ?? '', s.etiqueta, s.texto])
         ]),
         [],
         ['N°', 'Pregunta', 'Respuesta', 'Puntaje aplicado'],
@@ -751,7 +796,7 @@ function runAdmin(auth, db) {
       const blob = new Blob(['﻿' + rows], { type: 'text/csv;charset=utf-8' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `resultado-${(t.label || 'sin-nombre').replace(/[^\w-]+/g, '_')}.csv`;
+      a.download = `resultado-${fileSafe(t.label)}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();
