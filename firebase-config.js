@@ -1,18 +1,10 @@
-// ─────────────────────────────────────────────────────────────
-//  PASO OBLIGATORIO: pega aquí los datos de tu proyecto Firebase
-//  (Firebase Console → Configuración del proyecto → Tus apps → Web).
-//  Ver README.md, paso 4.
-// ─────────────────────────────────────────────────────────────
-export const firebaseConfig = {
-  apiKey: 'PEGA_AQUI_TU_API_KEY',
-  authDomain: 'PEGA_AQUI.firebaseapp.com',
-  projectId: 'PEGA_AQUI',
-  storageBucket: 'PEGA_AQUI.appspot.com',
-  messagingSenderId: 'PEGA_AQUI',
-  appId: 'PEGA_AQUI'
+
+  apiKey: 'AIzaSyD7J14pOFs5DTGMoXdL1o5fIy5rWgn348k',
+  authDomain: 'eco-manu.firebaseapp.com',
+  projectId: 'eco-manu',
+  storageBucket: 'eco-manu.firebasestorage.app',
+  messagingSenderId: '228989602486',
+  appId: '1:228989602486:web:dbf0652bad72a5d7513417'
 };
 
-// El usuario que escribes en el login ("manu") se convierte internamente en
-// manu@cuestionario.app. Debe coincidir con el usuario que crees en
-// Firebase → Authentication (README, paso 2).
 export const ADMIN_EMAIL_DOMAIN = 'cuestionario.app';
