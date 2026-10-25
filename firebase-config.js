@@ -1,4 +1,4 @@
-
+export const firebaseConfig = {
   apiKey: 'AIzaSyD7J14pOFs5DTGMoXdL1o5fIy5rWgn348k',
   authDomain: 'eco-manu.firebaseapp.com',
   projectId: 'eco-manu',
