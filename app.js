@@ -111,8 +111,42 @@ function viewLoading() {
 const configured = firebaseConfig.apiKey && !String(firebaseConfig.apiKey).startsWith('PEGA');
 const token = new URLSearchParams(location.search).get('t');
 
+/* ── Actualización automática ──
+   Busca una versión nueva al abrir, al volver a la app y cada 15 min. Cuando el service worker
+   nuevo toma el control, recarga la página sola (una vez). El progreso del cuestionario y la
+   sesión se guardan en el navegador y se conservan: no hace falta borrar datos del sitio. */
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  const hadController = !!navigator.serviceWorker.controller;
+  let reloading = false;
+  let pendingReload = false;
+
+  const userIsTyping = () => {
+    const a = document.activeElement;
+    return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && a.type !== 'radio' && a.type !== 'checkbox' && !!a.value;
+  };
+  const doReload = () => { if (!reloading) { reloading = true; location.reload(); } };
+
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return; // primera instalación: no hace falta recargar
+    // Si alguien está escribiendo o hay un diálogo abierto, espera a que salga de la app.
+    if (userIsTyping() || document.querySelector('dialog[open]')) pendingReload = true;
+    else doReload();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && pendingReload) doReload();
+  });
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then((reg) => {
+        const check = () => reg.update().catch(() => {});
+        check();
+        setInterval(check, 15 * 60 * 1000);
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check(); });
+        window.addEventListener('online', check);
+      })
+      .catch(() => {});
+  });
 }
 
 if (!configured) {
